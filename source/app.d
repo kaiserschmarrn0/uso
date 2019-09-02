@@ -60,7 +60,7 @@ void main() {
 	glfwSetErrorCallback(&uso_glfw_error_cb);
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	win = glfwCreateWindow(640, 480, "uso!", null, null);
@@ -68,10 +68,10 @@ void main() {
 	glfwSwapInterval(0);
 
 	const GLSupport support = loadOpenGL();
-	if (support == GLSupport.gl46) {
-		printf("uso: loaded OpenGL 4.6\n");
+	if (support == GLSupport.gl45) {
+		printf("uso: loaded OpenGL 4.5\n");
 	} else {
-		printf("uso: unable to load OpenGL 4.6\n");
+		printf("uso: unable to load OpenGL 4.5\n");
 		goto out1;
 	}
 
@@ -85,17 +85,17 @@ void main() {
 	glfwSetDropCallback(win, &uso_drop_cb);
 
 	const char *vertex_shader_src = 
-		"#version 460 core\n
+		"#version 450 core\n
 		layout (location = 0) in vec3 aPos;\n
 		void main(){\n
 			gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n
 		}\0";
 
 	const char *fragment_shader_src =
-		"#version 460 core\n
+		"#version 450 core\n
 		out vec4 FragColor;\n
 		void main(){\n
-			FragColor = vec4(0f, .5f, .2f, 1f);\n
+			FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n
 		}\0";
 
 	bool setup_shader(const char *name, GLenum type, const char *src, uint *shader) {
