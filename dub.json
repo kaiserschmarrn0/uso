@@ -1,0 +1,20 @@
+{
+	"description": "A minimal D application.",
+	"dependencies": {
+		"bindbc-glfw": "~>0.6.0",
+		"bindbc-opengl": "~>0.9.0"
+    },
+    "subConfigurations": {
+        "bindbc-glfw": "static"
+    },
+	"versions": ["BindGLFW_Static", "GLFW_31", "GL_46"],
+    "libs": ["glfw3"],
+    "dflags": ["-static", "-nogc"],
+    "lflags-windows-x86_64": ["-L./windows/"],
+	"authors": [
+		"kaiserschmarrn_"
+	],
+	"copyright": "Copyright © 2018, kaiserschmarrn_",
+	"license": "MIT",
+	"name": "uso"
+}
