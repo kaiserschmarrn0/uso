@@ -7,15 +7,24 @@
 	"subConfigurations": {
         	"bindbc-glfw": "static"
 	},
-	"versions": ["BindGLFW_Static", "GLFW_33", "GL_45"],
-	"libs": ["glfw3"],
-	"dflags-windows-x86_64": ["-static", "-nogc"],
-	"dflags-linux-x86_64": ["-nogc"],
-	"lflags-windows-x86_64": ["-L./windows/"],
+	"versions": [
+		"BindGLFW_Static",
+		"GLFW_33",
+		"GL_45"
+	],
+	"libs": [
+		"glfw3"
+	],
+	"dflags-windows-x86_64": [
+		"-static"
+	],
+	"lflags-windows-x86_64": [
+		"-L./windows/"
+	],
 	"authors": [
 		"kaiserschmarrn_"
 	],
 	"copyright": "Copyright © 2018, kaiserschmarrn_",
-	"license": "MIT",
+	"license": "none",
 	"name": "uso"
 }

@@ -6,6 +6,7 @@ import bindbc.glfw;
 import bindbc.opengl;
 
 nothrow:
+@nogc:
 
 GLFWwindow* win;
 
