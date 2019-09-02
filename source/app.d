@@ -78,7 +78,7 @@ bool setup_shader(ref uint shader, const char *fname, GLenum type) {
 	if (!success) {
 		char[512] info;
 		glGetShaderInfoLog(shader, 512, null, info.ptr);
-		printf("uso: failed to compile %s shader: %512s\n", fname, info.ptr);
+		printf("uso: failed to compile %s shader: %s\n", fname, info.ptr);
 		return false;
 	}
 
@@ -176,7 +176,18 @@ void main() {
 		goto out1;
 	}
 
-	const float[12] vertices = [ .5f, .5f, 0f, .5f, -.5f, 0f, -.5f, -.5f, 0f, -.5f, .5f, 0f ];
+	const float[24] vertices = [
+		 0.5f,  0.5f, 0.0f,
+		 0.5f, -0.5f, 0.0f,
+		-0.5f, -0.5f, 0.0f,
+		-0.5f,  0.5f, 0.0f,
+
+		 1.0f, 0.0f, 0.0f,
+		 0.0f, 1.0f, 0.0f,
+		 0.0f, 0.0f, 1.0f,
+		 0.0f, 1.0f, 0.0f,
+	 ];
+
 	const uint[6] indices = [ 0, 1, 3, 1, 2, 3 ];
 
 	uint vao;
@@ -193,12 +204,15 @@ void main() {
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * float.sizeof, cast(void*)0);
 	glEnableVertexAttribArray(0);
 
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * float.sizeof, cast(void*)(12 * float.sizeof));
+	glEnableVertexAttribArray(1);
+
 	//unbind stuff
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
 	//wireframe;
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	enum double fps = 60;
 	enum Duration spf = usecs(cast(long)(1_000_000 * 1f / fps));
