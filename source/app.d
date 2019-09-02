@@ -49,6 +49,29 @@ extern (C) void uso_key_cb(GLFWwindow* win, int key, int scancode, int action, i
 	}
 }
 
+bool setup_shader(const char *name, GLenum type, const char *src, uint *shader) {
+	const uint loc = glCreateShader(type);
+	*shader = loc;
+	glShaderSource(loc, 1, &src, null);
+	glCompileShader(loc);
+
+	int success;
+	glGetShaderiv(loc, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		char[512] info;
+		glGetShaderInfoLog(loc, 512, null, info.ptr);
+		printf("uso: failed to compile %s shader: %512s\n", name, info.ptr);
+		return true;
+	}
+	return false;
+}
+
+void setup_buffer(GLuint* bo, GLenum type, void* data, size_t len, GLenum usage) {
+	glGenBuffers(1, bo);
+	glBindBuffer(type, *bo);
+	glBufferData(type, len, data, usage);
+}
+
 void main() {
 	printf("uso: hello uso.\nuso: using glfw %s.\n", glfwGetVersionString);
 
@@ -98,23 +121,6 @@ void main() {
 			FragColor = vec4(0f, .5f, .2f, 1f);\n
 		}\0";
 
-	bool setup_shader(const char *name, GLenum type, const char *src, uint *shader) {
-		const uint loc = glCreateShader(type);
-		*shader = loc;
-		glShaderSource(loc, 1, &src, null);
-		glCompileShader(loc);
-
-		int success;
-		glGetShaderiv(loc, GL_COMPILE_STATUS, &success);
-		if (!success) {
-			char[512] info;
-			glGetShaderInfoLog(loc, 512, null, info.ptr);
-			printf("uso: failed to compile %s shader: %512s\n", name, info.ptr);
-			return true;
-		}
-		return false;
-	}
-
 	uint vertex_shader;
 	if (setup_shader("vertex", GL_VERTEX_SHADER, vertex_shader_src, &vertex_shader)) {
 		goto out1;
@@ -146,12 +152,6 @@ void main() {
 	uint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
-
-	void setup_buffer(GLuint* bo, GLenum type, void* data, size_t len, GLenum usage) {
-		glGenBuffers(1, bo);
-		glBindBuffer(type, *bo);
-		glBufferData(type, len, data, usage);
-	}
 
 	uint vbo;
 	setup_buffer(&vbo, GL_ARRAY_BUFFER, cast(void*)vertices.ptr, vertices.sizeof, GL_STATIC_DRAW);
@@ -186,8 +186,10 @@ void main() {
 		Duration end;
 		do {
 			end = MonoTime.currTime - start;
-			glfwWaitEventsTimeout(cast(double)end.total!"usecs" / 1_000_000f);
+			glfwWaitEventsTimeout((cast(double)spf.total!"usecs" - cast(double)end.total!"usecs") / 1_000_000f);
+			printf("proc\n");
 		} while(spf >= end);
+		printf("frame\n");
 	}
 
 	glDeleteVertexArrays(1, &vao);
