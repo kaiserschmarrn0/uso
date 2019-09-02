@@ -50,7 +50,70 @@ extern (C) void uso_key_cb(GLFWwindow* win, int key, int scancode, int action, i
 	}
 }
 
-bool setup_shader(const char *name, GLenum type, const char *src, uint *shader) {
+bool setup_shader(ref uint shader, const char *fname, GLenum type) {
+	enum size_t buf_max = 1024;
+
+	FILE* fp = fopen(fname, "r");
+	char[buf_max] buf;
+	if (fp == null) {
+		printf("uso: unable to open shader file %s.\n", fname);
+		return false;
+	}
+
+	const size_t len = fread(buf.ptr, char.sizeof, buf_max, fp);
+	fclose(fp);
+	if (len >= buf_max) {
+		printf("uso: shader %s too long.\n", fname);
+		return false;
+	}
+	buf[len] = '\0';
+
+	shader = glCreateShader(type);
+	char *bufptr = buf.ptr;
+	glShaderSource(shader, 1, &bufptr, null);
+	glCompileShader(shader);
+	
+	int success;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		char[512] info;
+		glGetShaderInfoLog(shader, 512, null, info.ptr);
+		printf("uso: failed to compile %s shader: %512s\n", fname, info.ptr);
+		return false;
+	}
+
+	return true;
+}
+
+bool setup_program(ref uint shader_program, const char *vertex_name, const char *fragment_name) {
+	uint vertex_shader; // @suppress(dscanner.suspicious.unmodified)
+	if (!setup_shader(vertex_shader, vertex_name, GL_VERTEX_SHADER)) {
+		return false;
+	}
+	uint fragment_shader; // @suppress(dscanner.suspicious.unmodified)
+	if (!setup_shader(fragment_shader, fragment_name, GL_FRAGMENT_SHADER)) {
+		return false;
+	}
+
+	shader_program = glCreateProgram();
+	glAttachShader(shader_program, vertex_shader);
+	glAttachShader(shader_program, fragment_shader);
+	glLinkProgram(shader_program);
+	int success;
+	glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
+	glDeleteShader(vertex_shader);
+	glDeleteShader(fragment_shader);
+	if (!success) {
+		char[512] info;
+		glGetProgramInfoLog(shader_program, 512, null, info.ptr);
+		printf("uso: failed to link shader program: %512s\n", info.ptr);
+		return false;
+	}
+	
+	return true;
+}
+
+bool setup_sasdhader(const char *name, GLenum type, const char *src, uint *shader) {
 	const uint loc = glCreateShader(type);
 	*shader = loc;
 	glShaderSource(loc, 1, &src, null);
@@ -108,42 +171,8 @@ void main() {
 	glfwSetScrollCallback(win, &uso_scroll_cb);
 	glfwSetDropCallback(win, &uso_drop_cb);
 
-	const char *vertex_shader_src = 
-		"#version 450 core\n
-		layout (location = 0) in vec3 aPos;\n
-		void main(){\n
-			gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n
-		}\0";
-
-	const char *fragment_shader_src =
-		"#version 450 core\n
-		out vec4 FragColor;\n
-		void main(){\n
-			FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n
-		}\0";
-
-	uint vertex_shader;
-	if (setup_shader("vertex", GL_VERTEX_SHADER, vertex_shader_src, &vertex_shader)) {
-		goto out1;
-	}
-
-	uint fragment_shader;
-	if (setup_shader("fragment", GL_FRAGMENT_SHADER, fragment_shader_src, &fragment_shader)) {
-		goto out1;
-	}
-	
-	const uint shader_program = glCreateProgram();
-	glAttachShader(shader_program, vertex_shader);
-	glAttachShader(shader_program, fragment_shader);
-	glLinkProgram(shader_program);
-	int success;
-	glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
-	glDeleteShader(vertex_shader);
-	glDeleteShader(fragment_shader);
-	if (!success) {
-		char[512] info;
-		glGetProgramInfoLog(shader_program, 512, null, info.ptr);
-		printf("uso: failed to link shader program: %512s\n", info.ptr);
+	uint shader_program;
+	if (!setup_program(shader_program, "source/triangle.v.glsl", "source/triangle.f.glsl")) {
 		goto out1;
 	}
 
@@ -168,12 +197,13 @@ void main() {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
+	//wireframe;
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
 	enum double fps = 60;
 	enum Duration spf = usecs(cast(long)(1_000_000 * 1f / fps));
 	while (!glfwWindowShouldClose(win)) {
 		const MonoTime start = MonoTime.currTime;
-
-		glfwPollEvents();
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -184,13 +214,17 @@ void main() {
 
 		glfwSwapBuffers(win);
 
-		Duration end;
-		do {
-			end = MonoTime.currTime - start;
-			glfwWaitEventsTimeout((cast(double)spf.total!"usecs" - cast(double)end.total!"usecs") / 1_000_000f);
-			printf("proc\n");
-		} while(spf >= end);
-		printf("frame\n");
+		Duration end = MonoTime.currTime - start;
+		if (end < spf) {
+			do {
+				glfwWaitEventsTimeout(cast(double)(spf - end).total!"usecs" / 1_000_000f);
+				end = MonoTime.currTime - start;
+			} while(end < spf);
+		} else {
+			glfwPollEvents();
+		}
+
+		//printf("fps: %lf", )
 	}
 
 	glDeleteVertexArrays(1, &vao);
