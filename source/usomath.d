@@ -32,6 +32,10 @@ union v3 {
 		return vec[i];
 	}
 
+    this(float4 v) {
+        this.vec = v;
+    }
+
     void opAssign(v3 v) {
         this.vec = v.vec;
     }
@@ -54,10 +58,16 @@ union v4 {
     nothrow:
     
     float4 vec;
-
-    ref float opIndex(const size_t i) {
-		return vec[i];
-	}
+    union {
+        float x;
+        float y;
+        float z;
+        float w;
+    }
+    
+    this(float4 v) {
+        this.vec = v;
+    }
 
     void opAssign(v3 v) {
         this.vec[0..3] = v.vec[0..3];
@@ -66,12 +76,28 @@ union v4 {
     void opAssign(v4 v) {
         this.vec = v.vec;
     }
+
+    ref float opIndex(const size_t i) {
+		return vec[i];
+	}
+
+    v4 opAdd(v4 v) {
+        return v4(this.vec + v.vec);
+    }
+
+    v4 opMul_r(float f) {
+        return v4(this.vec * f);
+    }
+
+    v4 opMul(float f) {
+        return v4(this.vec * f);
+    }
 }
 
 void v4_print(v4 v) {
     printf("[ ");
     for (uint r = 0; r < 4; r++) {
-        printf("%f ", v[r]);
+        printf("%0.2f ", v[r]);
     }
     printf("]\n");
 }
@@ -81,25 +107,29 @@ union m4 {
     nothrow:
 
 	v4[4] vecs;
-	float[16] arr;
+	float[16] arr = identity.arr;
 
 	ref v4 opIndex(const size_t i) {
 		return vecs[i];
-	}
+    }
+
+    v4 opMul(v4 v) {
+        return (v.x * this.vecs[0] + v.y * this.vecs[1] + v.z * this.vecs[2] + v.w * this.vecs[3]);
+    }
 }
 
 void m4_print(m4 m) {
     for (uint c = 0; c < 4; c++) {
         printf("[ ");
         for (uint r = 0; r < 4; r++) {
-            printf("%f ", m[r][c]);
+            printf("%0.2f ", m[r][c]);
         }
         printf("]\n");
     }
 }
 
 m4 translate(v3 v) {
-    m4 ret = identity;
+    m4 ret;
     ret[3] = v;
     return ret;
 }
@@ -107,12 +137,29 @@ m4 translate(v3 v) {
 void main() {
     printf("running usomath driver.\n\n");
 
-    printf("printing identity matrix.\n");
-    m4_print(identity);
-    printf("\n");
+    /*{
+        printf("printing identity matrix.\n");
+        m4_print(identity);
+        printf("\n");
+    }*/
 
     {
-        v3 v = { vec : [ 1.0f, 2.0f, 3.0f ] };
-        m4_print(translate(v));
+        /*printf("printing translated matrix.\n");
+        v3 v = [ 1.0f, 2.0f, 3.0f ];
+        m4 m = translate(v);
+        m4_print(m);
+        printf("\n");
+
+        v4 vfinal = [ 1.0f, 2.0f, 3.0f, 4.0f ];
+        v4_print(vfinal);
+        v4 ok = [ 0.0, 0.0, 0.0, 0.0 ];
+        v4_print(vfinal + ok);*/
+
+        v4 vec = [ 1.0f, 0.0f, 0.0f, 1.0f ];
+        m4 trans = translate(v3([ 1.0f, 1.0f, 0.0f ]));
+        m4_print(trans);
+        vec = trans * vec;
+        printf("\n");
+        v4_print(vec);
     }
 }
