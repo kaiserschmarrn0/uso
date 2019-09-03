@@ -4,6 +4,7 @@
 		"bindbc-glfw": "0.6.0",
 		"bindbc-loader": "0.2.1",
 		"bindbc-opengl": "0.9.0",
+		"gfm": "8.0.1",
 		"stb": "1.7.5"
 	}
 }

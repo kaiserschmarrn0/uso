@@ -1,9 +1,13 @@
 import core.stdc.stdio;
+import core.stdc.stdlib;
 import core.thread;
 import core.time;
+import core.simd;
 
 import bindbc.glfw;
 import bindbc.opengl;
+
+import stb.image.binding;
 
 nothrow:
 @nogc:
@@ -113,30 +117,51 @@ bool setup_program(ref uint shader_program, const char *vertex_name, const char 
 	return true;
 }
 
-bool setup_sasdhader(const char *name, GLenum type, const char *src, uint *shader) {
-	const uint loc = glCreateShader(type);
-	*shader = loc;
-	glShaderSource(loc, 1, &src, null);
-	glCompileShader(loc);
-
-	int success;
-	glGetShaderiv(loc, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		char[512] info;
-		glGetShaderInfoLog(loc, 512, null, info.ptr);
-		printf("uso: failed to compile %s shader: %512s\n", name, info.ptr);
-		return true;
-	}
-	return false;
-}
-
 void setup_buffer(GLuint* bo, GLenum type, void* data, size_t len, GLenum usage) {
 	glGenBuffers(1, bo);
 	glBindBuffer(type, *bo);
 	glBufferData(type, len, data, usage);
 }
 
+void print_v(int4 v) {
+	for (uint i = 0; i < v.array.length; i++) {
+		printf("%d ", v.ptr[i]);
+	}
+
+	printf("\n");
+}
+
+void print_v(float4 v) {
+	for (uint i = 0; i < v.array.length; i++) {
+		printf("%ls ", v.ptr[i]);
+	}
+
+	printf("\n");
+}
+
+
+
 void main() {
+
+	int4 v = 7;
+
+	print_v(v);
+
+	v += 3;
+	v[2] = 4;
+
+	mat4!(float) m4 = 1.0f;
+ 
+	print_v(v);
+
+
+
+
+
+
+
+
+
 	printf("uso: hello uso.\nuso: using glfw %s.\n", glfwGetVersionString);
 
 	if (!glfwInit()) {
@@ -171,24 +196,58 @@ void main() {
 	glfwSetScrollCallback(win, &uso_scroll_cb);
 	glfwSetDropCallback(win, &uso_drop_cb);
 
+	/*const float[4] f = [ 0.0f, 1.0f, 2.0f, 3.0f ];
+	Vector!(float, 4) v4 = f;
+	Matrix!(float, 4, 4) m4 = 1.0f;
+
+	v4 = m4 * v4;
+
+	printf("%s\n", v4.toString());*/
+
 	uint shader_program;
 	if (!setup_program(shader_program, "source/triangle.v.glsl", "source/triangle.f.glsl")) {
 		goto out1;
 	}
 
-	const float[24] vertices = [
-		 0.5f,  0.5f, 0.0f,
-		 0.5f, -0.5f, 0.0f,
-		-0.5f, -0.5f, 0.0f,
-		-0.5f,  0.5f, 0.0f,
-
-		 1.0f, 0.0f, 0.0f,
-		 0.0f, 1.0f, 0.0f,
-		 0.0f, 0.0f, 1.0f,
-		 0.0f, 1.0f, 0.0f,
-	 ];
+	const float[32] vertices = [
+		 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
+		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
+		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
+		-0.5f,  0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   0.0f, 1.0f,
+	];
 
 	const uint[6] indices = [ 0, 1, 3, 1, 2, 3 ];
+
+	stbi_set_flip_vertically_on_load(true);
+	int w;
+	int h;
+	int channels;
+	ubyte *egg_data = stbi_load("egg.jpg", &w, &h, &channels, 0);
+	if (!egg_data) {
+		printf("uso: failed to load image\n.");
+		goto out1;
+	}
+
+	uint texture1;
+	glGenTextures(1, &texture1);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, egg_data);
+	stbi_image_free(egg_data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	egg_data = stbi_load("miku.png", &w, &h, &channels, 0);
+	if (!egg_data) {
+		printf("uso: failed to load image miku\n.");
+		goto out1;
+	}
+
+	uint texture2;
+	glGenTextures(1, &texture2);
+
+	glBindTexture(GL_TEXTURE_2D, texture2);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, egg_data);
+	glGenerateMipmap(GL_TEXTURE_2D);
 
 	uint vao;
 	glGenVertexArrays(1, &vao);
@@ -201,11 +260,14 @@ void main() {
 	setup_buffer(&ebo, GL_ELEMENT_ARRAY_BUFFER, cast(void*)indices.ptr, indices.sizeof, GL_STATIC_DRAW);
 
 	//info about vertex array
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * float.sizeof, cast(void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * float.sizeof, cast(void*)0);
 	glEnableVertexAttribArray(0);
 
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * float.sizeof, cast(void*)(12 * float.sizeof));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * float.sizeof, cast(void*)(3 * float.sizeof));
 	glEnableVertexAttribArray(1);
+
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * float.sizeof, cast(void*)(6 * float.sizeof));
+	glEnableVertexAttribArray(2);
 
 	//unbind stuff
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -214,6 +276,10 @@ void main() {
 	//wireframe;
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+	glUseProgram(shader_program);
+	glUniform1i(glGetUniformLocation(shader_program, "texture1"), 0);
+	glUniform1i(glGetUniformLocation(shader_program, "texture2"), 1);
+
 	enum double fps = 60;
 	enum Duration spf = usecs(cast(long)(1_000_000 * 1f / fps));
 	while (!glfwWindowShouldClose(win)) {
@@ -221,6 +287,11 @@ void main() {
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture1);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, texture2);
 
 		glUseProgram(shader_program);
 		glBindVertexArray(vao);
