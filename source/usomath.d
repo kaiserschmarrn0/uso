@@ -2,6 +2,8 @@ import core.simd;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 
+import std.math;
+
 @nogc:
 nothrow:
 
@@ -43,6 +45,18 @@ union v3 {
     void opAssign(v4 v) {
         this.vec = v.vec;
     }
+
+    v4 opAdd(v4 v) {
+        return v4(this.vec + v.vec);
+    }
+
+    v4 opMul_r(float f) {
+        return v4(this.vec * f);
+    }
+
+    v4 opMul(float f) {
+        return v4(this.vec * f);
+    }
 }
 
 void v3_print(v3 v) {
@@ -58,13 +72,13 @@ union v4 {
     nothrow:
     
     float4 vec;
-    union {
+    struct {
         float x;
         float y;
         float z;
         float w;
     }
-    
+
     this(float4 v) {
         this.vec = v;
     }
@@ -122,7 +136,7 @@ void m4_print(m4 m) {
     for (uint c = 0; c < 4; c++) {
         printf("[ ");
         for (uint r = 0; r < 4; r++) {
-            printf("%0.2f ", m[r][c]);
+            printf("%0.2f ", m[c][r]);
         }
         printf("]\n");
     }
@@ -134,32 +148,21 @@ m4 translate(v3 v) {
     return ret;
 }
 
+m4 rotate(float a, v3 axis) {
+
+}
+
 void main() {
     printf("running usomath driver.\n\n");
 
-    /*{
-        printf("printing identity matrix.\n");
-        m4_print(identity);
-        printf("\n");
-    }*/
-
     {
-        /*printf("printing translated matrix.\n");
-        v3 v = [ 1.0f, 2.0f, 3.0f ];
-        m4 m = translate(v);
-        m4_print(m);
-        printf("\n");
-
-        v4 vfinal = [ 1.0f, 2.0f, 3.0f, 4.0f ];
-        v4_print(vfinal);
-        v4 ok = [ 0.0, 0.0, 0.0, 0.0 ];
-        v4_print(vfinal + ok);*/
-
         v4 vec = [ 1.0f, 0.0f, 0.0f, 1.0f ];
         m4 trans = translate(v3([ 1.0f, 1.0f, 0.0f ]));
-        m4_print(trans);
         vec = trans * vec;
-        printf("\n");
         v4_print(vec);
+    }
+
+    {
+        m5 trans
     }
 }
