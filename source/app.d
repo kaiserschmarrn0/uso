@@ -4,6 +4,8 @@ import core.thread;
 import core.time;
 import core.simd;
 
+import std.math;
+
 import bindbc.glfw;
 import bindbc.opengl;
 
@@ -317,12 +319,18 @@ void main() {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, texture2);
 
+	/*v3 cam_pos = v3([0f, 0f, 3f]);
+	v3 cam_aim = v3([0f, 0f, 0f]);
+	v3 cam_dir = norm(cam_pos - cam_aim);
+
+	v3 cam_right = norm(cross(v3([ 0f, 1f, 0f ]), cam_dir));
+	v3 cam_up = norm(cross(cam_dir, cam_right));*/
+
 	//rarely changes
 	m4 proj = perspective(radians(45f), 640 / 480, 0.1f, 100f);
 	glUniformMatrix4fv(glGetUniformLocation(shader_program, "proj"), 1, GL_FALSE, proj.arr.ptr);
 
-	m4 view = translate(v3([0f, 0f, -3f]));
-	glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"), 1, GL_FALSE, view.arr.ptr);
+	
 	
 	/*m4 trans = scale(v3([ 2f, 2f, 2f ]));
   	trans = rotate(radians(90f), v3([ 0f, 0f, 1f ])) * trans;
@@ -344,11 +352,17 @@ void main() {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		float rad = 10f;
+		float cam_x = sin(glfwGetTime()) * rad;
+		float cam_z = cos(glfwGetTime()) * rad;
+		m4 view = look_at(v3(cam_x, 0f, cam_z), v3(0f, 0f, 0f), v3(0f, 1f, 0f));
+		glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"), 1, GL_FALSE, view.arr.ptr);
+
 		for (uint i = 0; i < 10; i++) {
 			m4 model = translate(cubes[i]);
 			model = rotate(cast(float)glfwGetTime(), v3([0.5f, 1.0f, 0.0f]) + cubes[i] + v3([-0.5f, -0.5f, -0.5f])) * model;
 			glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, model.arr.ptr);
-		
+
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 		

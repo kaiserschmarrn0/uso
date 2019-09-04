@@ -43,6 +43,12 @@ union v3 {
         this.vec = v;
     }
 
+    this(float x, float y, float z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
     void opAssign(v3 v) {
         this.vec = v.vec;
     }
@@ -65,6 +71,10 @@ union v3 {
 
     v3 opBinary(string op)(float f) if (op == "/") {
         return v3(this.vec / f);
+    }
+
+    v3 opBinary(string op)(v3 v) if (op == "-") {
+        return v3(this.vec - v.vec);
     }
 }
 
@@ -202,6 +212,10 @@ float len(v3 v) {
     return sqrt(lensq(v));
 }
 
+v3 cross(v3 l, v3 r) {
+    return v3(l.y * r.z - l.z *r.y, l.z * r.x - l.x * r.z, l.x * r.y - l.y * r.x);
+}
+
 v3 norm(v3 v) {
     return v / len(v);
 }
@@ -246,6 +260,29 @@ m4 perspective(float fovy, float aspect, float z_near, float z_far) {
     ret[2][2] = - (z_far + z_near) / (z_far / z_near);
     ret[2][3] = - 1.0f;
     ret[3][2] = - (2.0f * z_far * z_near) / (z_far / z_near);
+
+    return ret;
+}
+
+m4 look_at(v3 pos, v3 at, v3 up) {
+    v3 f = norm(at - pos);
+    v3 s = norm(cross(f, up));
+    v3 u = cross(s, f);
+
+    m4 ret = 0f;
+    ret[0][0] = s.x;
+    ret[0][1] = u.x;
+    ret[0][2] = - f.x;
+    ret[1][0] = s.y;
+    ret[1][1] = u.y;
+    ret[1][2] = - f.y;
+    ret[2][0] = s.z;
+    ret[2][1] = u.z;
+    ret[2][2] = - f.z;
+    ret[3][0] = - dot(s, pos);
+    ret[3][1] = - dot(u, pos);
+    ret[3][2] = dot(f, pos);
+    ret[3][3] = 1.0f;
 
     return ret;
 }
