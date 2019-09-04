@@ -237,14 +237,14 @@ void main() {
 	v3[10] cubes= [
         v3([ 0.0f,  0.0f,  0.0f ]),
         v3([ 2.0f,  5.0f, -15.0f]),
-        v3([-1.5f, -2.2f, -2.5f]),
+        v3([-1.5f, -2.2f, -2.5f ]),
         v3([-3.8f, -2.0f, -12.3f]),
-		v3([ 2.4f, -0.4f, -3.5f]),
-        v3([-1.7f,  3.0f, -7.5f]),
-        v3([ 1.3f, -2.0f, -2.5f]),
-        v3([ 1.5f,  2.0f, -2.5f]),
-        v3([ 1.5f,  0.2f, -1.5f]),
-        v3([-1.3f,  1.0f, -1.5f])
+		v3([ 2.4f, -0.4f, -3.5f ]),
+        v3([-1.7f,  3.0f, -7.5f ]),
+        v3([ 1.3f, -2.0f, -2.5f ]),
+        v3([ 1.5f,  2.0f, -2.5f ]),
+        v3([ 1.5f,  0.2f, -1.5f ]),
+        v3([-1.3f,  1.0f, -1.5f ])
 	];
 
 	//const uint[6] indices = [ 0, 1, 3, 1, 2, 3 ];
@@ -359,8 +359,8 @@ void main() {
 		glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"), 1, GL_FALSE, view.arr.ptr);
 
 		for (uint i = 0; i < 10; i++) {
-			m4 model = translate(cubes[i]);
-			model = rotate(cast(float)glfwGetTime(), v3([0.5f, 1.0f, 0.0f]) + cubes[i] + v3([-0.5f, -0.5f, -0.5f])) * model;
+			m4 model = rotate(cast(float)glfwGetTime(), v3([0.5f, 1.0f, 0.0f]));
+			model = translate(cubes[i]) * model;
 			glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, model.arr.ptr);
 
 			glDrawArrays(GL_TRIANGLES, 0, 36);
