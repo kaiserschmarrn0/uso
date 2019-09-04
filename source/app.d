@@ -9,6 +9,8 @@ import bindbc.opengl;
 
 import stb.image.binding;
 
+import usomath;
+
 nothrow:
 @nogc:
 
@@ -139,29 +141,7 @@ void print_v(float4 v) {
 	printf("\n");
 }
 
-
-
 void main() {
-
-	int4 v = 7;
-
-	print_v(v);
-
-	v += 3;
-	v[2] = 4;
-
-	mat4!(float) m4 = 1.0f;
- 
-	print_v(v);
-
-
-
-
-
-
-
-
-
 	printf("uso: hello uso.\nuso: using glfw %s.\n", glfwGetVersionString);
 
 	if (!glfwInit()) {
@@ -196,29 +176,79 @@ void main() {
 	glfwSetScrollCallback(win, &uso_scroll_cb);
 	glfwSetDropCallback(win, &uso_drop_cb);
 
-	/*const float[4] f = [ 0.0f, 1.0f, 2.0f, 3.0f ];
-	Vector!(float, 4) v4 = f;
-	Matrix!(float, 4, 4) m4 = 1.0f;
-
-	v4 = m4 * v4;
-
-	printf("%s\n", v4.toString());*/
-
 	uint shader_program;
 	if (!setup_program(shader_program, "source/triangle.v.glsl", "source/triangle.f.glsl")) {
 		goto out1;
 	}
 
-	const float[32] vertices = [
+	/*const float[32] vertices = [
 		 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
 		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
 		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
 		-0.5f,  0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   0.0f, 1.0f,
+	];*/
+
+	float[36 * 5] vertices = [
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 	];
 
-	const uint[6] indices = [ 0, 1, 3, 1, 2, 3 ];
+	v3[10] cubes= [
+        v3([ 0.0f,  0.0f,  0.0f ]),
+        v3([ 2.0f,  5.0f, -15.0f]),
+        v3([-1.5f, -2.2f, -2.5f]),
+        v3([-3.8f, -2.0f, -12.3f]),
+		v3([ 2.4f, -0.4f, -3.5f]),
+        v3([-1.7f,  3.0f, -7.5f]),
+        v3([ 1.3f, -2.0f, -2.5f]),
+        v3([ 1.5f,  2.0f, -2.5f]),
+        v3([ 1.5f,  0.2f, -1.5f]),
+        v3([-1.3f,  1.0f, -1.5f])
+	];
+
+	//const uint[6] indices = [ 0, 1, 3, 1, 2, 3 ];
 
 	stbi_set_flip_vertically_on_load(true);
+
 	int w;
 	int h;
 	int channels;
@@ -256,18 +286,18 @@ void main() {
 	uint vbo;
 	setup_buffer(&vbo, GL_ARRAY_BUFFER, cast(void*)vertices.ptr, vertices.sizeof, GL_STATIC_DRAW);
 
-	uint ebo;
-	setup_buffer(&ebo, GL_ELEMENT_ARRAY_BUFFER, cast(void*)indices.ptr, indices.sizeof, GL_STATIC_DRAW);
+	/*uint ebo;
+	setup_buffer(&ebo, GL_ELEMENT_ARRAY_BUFFER, cast(void*)indices.ptr, indices.sizeof, GL_STATIC_DRAW);*/
 
 	//info about vertex array
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * float.sizeof, cast(void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * float.sizeof, cast(void*)0);
 	glEnableVertexAttribArray(0);
 
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * float.sizeof, cast(void*)(3 * float.sizeof));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * float.sizeof, cast(void*)(3 * float.sizeof));
 	glEnableVertexAttribArray(1);
 
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * float.sizeof, cast(void*)(6 * float.sizeof));
-	glEnableVertexAttribArray(2);
+	/*glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * float.sizeof, cast(void*)(6 * float.sizeof));
+	glEnableVertexAttribArray(2);*/
 
 	//unbind stuff
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -276,26 +306,54 @@ void main() {
 	//wireframe;
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+	//do i need to use this here?
 	glUseProgram(shader_program);
 	glUniform1i(glGetUniformLocation(shader_program, "texture1"), 0);
 	glUniform1i(glGetUniformLocation(shader_program, "texture2"), 1);
 
-	enum double fps = 60;
+	//bind textures
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture1);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, texture2);
+
+	//rarely changes
+	m4 proj = perspective(radians(45f), 640 / 480, 0.1f, 100f);
+	glUniformMatrix4fv(glGetUniformLocation(shader_program, "proj"), 1, GL_FALSE, proj.arr.ptr);
+
+	m4 view = translate(v3([0f, 0f, -3f]));
+	glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"), 1, GL_FALSE, view.arr.ptr);
+	
+	/*m4 trans = scale(v3([ 2f, 2f, 2f ]));
+  	trans = rotate(radians(90f), v3([ 0f, 0f, 1f ])) * trans;
+	glUniformMatrix4fv(glGetUniformLocation(shader_program, "trans"), 1, GL_FALSE, trans.arr.ptr);*/
+
+	glBindVertexArray(vao);
+
+	glEnable(GL_DEPTH_TEST);
+
+	//should this be here?
+	glUseProgram(shader_program);
+
+	enum double fps = 120;
 	enum Duration spf = usecs(cast(long)(1_000_000 * 1f / fps));
+
 	while (!glfwWindowShouldClose(win)) {
 		const MonoTime start = MonoTime.currTime;
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture1);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, texture2);
-
-		glUseProgram(shader_program);
-		glBindVertexArray(vao);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, cast(const(void)*)0);
+		for (uint i = 0; i < 10; i++) {
+			m4 model = translate(cubes[i]);
+			model = rotate(/*radians(-55f)*/ cast(float)glfwGetTime(), v3([0.5f, 1.0f, 0.0f])) * model;
+			glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, model.arr.ptr);
+		
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
+		
+		//only for indices
+		//glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, cast(const(void)*)0);
 
 		glfwSwapBuffers(win);
 
@@ -308,13 +366,11 @@ void main() {
 		} else {
 			glfwPollEvents();
 		}
-
-		//printf("fps: %lf", )
 	}
 
 	glDeleteVertexArrays(1, &vao);
 	glDeleteBuffers(1, &vbo);
-	glDeleteBuffers(1, &ebo);
+	//glDeleteBuffers(1, &ebo);
 
 out1:
 	glfwDestroyWindow(win);
