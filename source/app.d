@@ -346,7 +346,7 @@ void main() {
 
 		for (uint i = 0; i < 10; i++) {
 			m4 model = translate(cubes[i]);
-			model = rotate(/*radians(-55f)*/ cast(float)glfwGetTime(), v3([0.5f, 1.0f, 0.0f])) * model;
+			model = rotate(cast(float)glfwGetTime(), v3([0.5f, 1.0f, 0.0f]) + cubes[i] + v3([-0.5f, -0.5f, -0.5f])) * model;
 			glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, model.arr.ptr);
 		
 			glDrawArrays(GL_TRIANGLES, 0, 36);
