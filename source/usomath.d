@@ -57,6 +57,16 @@ union v3 {
         this.vec = v.vec;
     }
 
+    ref v3 opOpAssign(string op)(v3 v) if (op == "+") {
+        this.vec += v.vec;
+        return this;
+    }
+
+    ref v3 opOpAssign(string op)(v3 v) if (op == "-") {
+        this.vec -= v.vec;
+        return this;
+    }
+
     v3 opAdd(v3 v) {
         return v3(this.vec + v.vec);
     }
@@ -285,22 +295,4 @@ m4 look_at(v3 pos, v3 at, v3 up) {
     ret[3][3] = 1.0f;
 
     return ret;
-}
-
-void drive() {
-    printf("running usomath driver.\n\n");
-
-    {
-        v4 vec = [ 1.0f, 0.0f, 0.0f, 1.0f ];
-        m4 trans = translate(v3([ 1.0f, 1.0f, 0.0f ]));
-        vec = trans * vec;
-        v4_print(vec);
-    }
-
-    {
-        m4 trans = identity;
-        trans = rotate(radians(90f), v3([ 0f, 0f, 1f ])) * trans;
-        trans = scale(v3([ .5f, .5f, .5f ])) * trans;
-        m4_print(trans);
-    }
 }
