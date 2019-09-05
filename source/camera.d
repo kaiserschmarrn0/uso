@@ -12,7 +12,9 @@ enum cam_dir {
     forward,
     backward,
     left,
-    right
+    right,
+    up,
+    down
 };
 
 v3 pos = v3(0f, 0f, 0f);
@@ -21,7 +23,7 @@ v3 up = v3(0f, 1f, 0f);
 v3 right = v3(0f, 0f, 0f);
 v3 abs_up = v3(0f, 1f, 0f);
 
-float yaw = 0f;
+float yaw = 90f;
 float pitch = 0f;
 
 float speed = 5f;
@@ -43,6 +45,12 @@ void cam_move(cam_dir dir, float dt) {
         case cam_dir.right:
             pos += right * vel;
             break;
+        case cam_dir.up:
+            pos += up * vel;
+            break;
+        case cam_dir.down:
+            pos -= up * vel;
+            break;
     }
 }
 
@@ -51,9 +59,9 @@ void cam_look(float xoff, float yoff) {
     pitch -= yoff * sens;
 
     if (yaw > 360f) {
-        yaw -= 360f;
-    } else if (yaw < 0f) {
-        yaw += 360f;
+        yaw %= 360f;
+    } else if (yaw < -360f) {
+        yaw %= 360f;
     }
 
     if (pitch > 89f) {
@@ -62,7 +70,7 @@ void cam_look(float xoff, float yoff) {
         pitch = - 89f;
     }
 
-    printf("yaw: %f\npitch: %f\n", yaw, pitch);
+    printf("%f %f\n", yaw, pitch);
 
     cam_update();
 }
@@ -80,9 +88,9 @@ void cam_zoom(float z) {
 }
 
 void cam_update() {
-    front.x = cos(radians(pitch) * cos(radians(yaw)));
+    front.x = cos(radians(pitch)) * cos(radians(yaw));
     front.y = sin(radians(pitch));
-    front.z = sin(radians(yaw) * cos(radians(pitch)));
+    front.z = sin(radians(yaw)) * cos(radians(pitch));
     
     front = norm(front);
     right = norm(cross(front, v3(0, 1, 0)));

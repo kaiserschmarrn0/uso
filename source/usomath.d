@@ -23,6 +23,73 @@ static float degrees(float radians) {
     return radians * (180.0f / pi32);
 }
 
+union v2 {
+    @nogc:
+    nothrow:
+    
+    float4 vec;
+    struct {
+        float x;
+        float y;
+    }
+
+    ref float opIndex(const size_t i) {
+        assert(i < 2, "failed to index v3");
+		return vec[i];
+	}
+
+    this(float4 v) {
+        this.vec = v;
+    }
+
+    this(float x, float y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    void opAssign(v2 v) {
+        this.vec = v.vec;
+    }
+
+    void opAssign(v3 v) {
+        this.vec = v.vec;
+    }
+
+    void opAssign(v4 v) {
+        this.vec = v.vec;
+    }
+
+    ref v2 opOpAssign(string op)(v2 v) if (op == "+") {
+        this.vec += v.vec;
+        return this;
+    }
+
+    ref v2 opOpAssign(string op)(v2 v) if (op == "-") {
+        this.vec -= v.vec;
+        return this;
+    }
+
+    v2 opAdd(v2 v) {
+        return v2(this.vec + v.vec);
+    }
+
+    v2 opMul_r(float f) {
+        return v2(this.vec * f);
+    }
+
+    v2 opMul(float f) {
+        return v2(this.vec * f);
+    }
+
+    v2 opBinary(string op)(float f) if (op == "/") {
+        return v2(this.vec / f);
+    }
+
+    v2 opBinary(string op)(v2 v) if (op == "-") {
+        return v2(this.vec - v.vec);
+    }
+}
+
 union v3 {
     @nogc:
     nothrow:
@@ -295,4 +362,39 @@ m4 look_at(v3 pos, v3 at, v3 up) {
     ret[3][3] = 1.0f;
 
     return ret;
+}
+
+import core.stdc.stdlib;
+import core.stdc.string;
+
+bool bez(ref v2 res, v2* points, uint len, float t) {
+    enum uint len_max = 256;
+    if (len >= len_max) {
+        printf("uso: too many points in curve.\n");
+        return false;
+    }
+    
+    v2[len_max] tmp;
+    memcpy(tmp.ptr, points, len * v2.sizeof);
+
+    for (uint i = len - 1; i > 0; i--) {
+        for (uint k = 0; k < i; k++) {
+            tmp[k] = tmp[k] + t * (tmp[k+1] - tmp[k]);
+        }
+    }
+
+    res = tmp[0];
+    return true;
+}
+
+void main() {
+    v2[3] points = [ v2(0f, 1f), v2(0f, 0f), v2(1f, 0f) ];
+
+    for (float i = 0; i < 1.1; i+= .1f) {
+        v2 res;
+        if (!bez(res, points.ptr, points.length, i)) {
+            return;
+        }
+        printf("%f %f\n", res.x, res.y);
+    }
 }

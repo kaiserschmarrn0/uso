@@ -19,6 +19,9 @@ nothrow:
 
 GLFWwindow* win;
 
+uint win_w = 640;
+uint win_h = 480;
+
 export bool NvOptimusEnablement = true;
 export bool AmdPowerXPressRequestHighPerformance = true;
 
@@ -34,30 +37,39 @@ double lastx = 0f;
 double lasty = 0f;
 
 extern (C) void uso_cursor_enter_cb(GLFWwindow* win, int entered) {
-	//printf("uso: cursor pos:\n\tx: %lf\n\tf: %lf\n", x, y);
-	if (entered) {
-		glfwGetCursorPos(win, &lastx, &lasty);
-	}
+	/*if (entered) {
+		//glfwGetCursorPos(win, &lastx, &lasty);
+		printf("entered\n");
+	}*/
 }
+
+bool paused = true;
 
 extern (C) void uso_cursor_pos_cb(GLFWwindow* win, double x, double y) {
 	//printf("uso: cursor pos:\n\tx: %lf\n\tf: %lf\n", x, y);
-	
-	cam_look(x - lastx, y - lasty);
-	lastx = x;
-	lasty = y;
+	if (!paused) {
+		cam_look(x - lastx, y - lasty);
+		lastx = x;
+		lasty = y;
+	}
 }
 
 extern (C) void uso_mouse_button_cb(GLFWwindow* win, int button, int action, int mods) {
-	printf("uso: mouse button:\n\tbutton: %d\n\taction: %d\n\tmods: %d\n", button, action, mods);
+	//printf("uso: mouse button:\n\tbutton: %d\n\taction: %d\n\tmods: %d\n", button, action, mods);
+
+	uso_try_unpause();
 }
 
 extern (C) void uso_scroll_cb(GLFWwindow* win, double xoff, double yoff) {
-	printf("uso: scroll:\n\txoff: %lf\n\tyoff: %lf\n", xoff, yoff);
-	cam_zoom(yoff);
+	//printf("uso: scroll:\n\txoff: %lf\n\tyoff: %lf\n", xoff, yoff);
+	if (!paused) {
+		cam_zoom(yoff);
+	}
 }
 
 extern (C) void uso_fb_size_cb(GLFWwindow* win, int width, int height) {
+	win_w = width;
+	win_h = height;
 	glViewport(0, 0, width, height);
 }
 
@@ -68,12 +80,44 @@ extern (C) void uso_drop_cb(GLFWwindow* win, int count, const char** paths) {
 	}
 }
 
+void uso_pause() {
+	glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	paused = true;
+}
+
+void uso_unpause() {
+	glfwGetCursorPos(win, &lastx, &lasty);
+	//printf("%f %f\n", lastx, lasty);
+	glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	paused = false;
+}
+
+void uso_try_pause() {
+	if (!paused) {
+		uso_pause();
+	}
+}
+
+void uso_try_unpause() {
+	if (paused) {
+		uso_unpause();
+	}
+}
+
+void uso_toggle_pause() {
+	if (paused) {
+		uso_unpause();
+	} else {
+		uso_pause();
+	} 
+}
+
 extern (C) void uso_key_cb(GLFWwindow* win, int key, int scancode, int action, int mods) {
 	//GLFW_PRESS GLFW_RELEASE GLFW_REPEAT
 	//GLFW_KEY_UNKNOWN
-	printf("uso: keyboard:\n\tkey: %d\n\tscancode: %d\n\taction: %d\n\tmods: %d\n", key, scancode, action, mods);
+	//printf("uso: keyboard:\n\tkey: %d\n\tscancode: %d\n\taction: %d\n\tmods: %d\n", key, scancode, action, mods);
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-		glfwSetWindowShouldClose(win, true);
+		uso_toggle_pause();
 	}
 }
 
@@ -90,18 +134,24 @@ void uso_keyboard(float dt) {
 	if (glfwGetKey(win, GLFW_KEY_D) == GLFW_PRESS) {
 		cam_move(cam_dir.right, dt);
 	}
+	if (glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS) {
+		cam_move(cam_dir.up, dt);
+	}
+	if (glfwGetKey(win, GLFW_KEY_LSHIFT) == GLFW_PRESS) {
+		cam_move(cam_dir.down, dt);
+	}
 }
 
 bool setup_shader(ref uint shader, const char *fname, GLenum type) {
 	enum size_t buf_max = 1024;
 
 	FILE* fp = fopen(fname, "r");
-	char[buf_max] buf;
 	if (fp == null) {
 		printf("uso: unable to open shader file %s.\n", fname);
 		return false;
 	}
 
+	char[buf_max] buf;
 	const size_t len = fread(buf.ptr, char.sizeof, buf_max, fp);
 	fclose(fp);
 	if (len >= buf_max) {
@@ -272,7 +322,7 @@ void main() {
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 	];
 
-	v3[9] cubes= [
+	v3[9] cubes = [
         v3( 0f,  0f,  0f),
         v3( 3f,  3f,  3f),
 		v3(-3f,  3f,  3f),
@@ -332,9 +382,6 @@ void main() {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, texture2);
 
-	//rarely changes
-	
-	
 	glBindVertexArray(vao);
 
 	glEnable(GL_DEPTH_TEST);
@@ -356,20 +403,15 @@ void main() {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		m4 proj = perspective(radians(zoom), 640 / 480, 0.1f, 100f);
+		m4 proj = perspective(radians(camera.zoom), win_w / win_h, 0.1f, 100f);
 		glUniformMatrix4fv(glGetUniformLocation(shader_program, "proj"), 1, GL_FALSE, proj.arr.ptr);
-
-		/*float rad = 5f;
-		float cam_x = sin(glfwGetTime()) * rad;
-		float cam_z = cos(glfwGetTime()) * rad;
-		m4 view = look_at(v3(cam_x, 3f, cam_z), v3(0f, 0f, 0f), v3(0f, 1f, 0f));*/
 
 		m4 view = look_at(camera.pos, camera.pos + camera.front, camera.up);
 		glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"), 1, GL_FALSE, view.arr.ptr);
 
 		for (uint i = 0; i < cubes.length; i++) {
-			//m4 model = rotate(2f * cast(float)glfwGetTime(), v3([0.5f, 1.0f, 0.0f]));
-			m4 model = translate(cubes[i])/* * model*/;
+			m4 model = rotate(2f * cast(float)glfwGetTime(), v3([0.5f, 1.0f, 0.0f]));
+			model = translate(cubes[i]) * model;
 			glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, model.arr.ptr);
 
 			glDrawArrays(GL_TRIANGLES, 0, 36);
