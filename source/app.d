@@ -279,7 +279,7 @@ void main() {
 		return;
 	}
 
-	/*float[36 * 5] vertices = [
+	float[36 * 5] vertices = [
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
 		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
@@ -333,9 +333,9 @@ void main() {
 		v3(-3f,  3f, -3f),
 		v3( 3f, -3f, -3f),
 		v3(-3f, -3f, -3f)
-	];*/
+	];
 
-	v2[3] points = [ v2(0f, 0f), v2(3f, 5f), v2(6f, 0f) ];
+	/*v2[3] points = [ v2(0f, 0f), v2(3f, 5f), v2(6f, 0f) ];
 
     float[3 * 20 * 2] verts;
 	uint[3 * 20 * 2] indices;
@@ -353,7 +353,7 @@ void main() {
 		printf("%d\n", indices[i]);
 	}
 
-	printf("inds: %d", indices.length);
+	printf("inds: %d", indices.length);*/
 
 	stbi_set_flip_vertically_on_load(true);
 
@@ -373,16 +373,16 @@ void main() {
 	glBindVertexArray(vao);
 
 	uint vbo;
-	setup_buffer(&vbo, GL_ARRAY_BUFFER, cast(void*)verts.ptr, verts.sizeof, GL_STATIC_DRAW);
+	setup_buffer(&vbo, GL_ARRAY_BUFFER, cast(void*)vertices.ptr, vertices.sizeof, GL_STATIC_DRAW);
 	//setup_buffer(&vbo, GL_ARRAY_BUFFER, cast(void*)vertices.ptr, vertices.sizeof, GL_STATIC_DRAW);
 
-	uint ebo;
-	setup_buffer(&ebo, GL_ELEMENT_ARRAY_BUFFER, cast(void*)indices.ptr, indices.sizeof, GL_STATIC_DRAW);
+	/*uint ebo;
+	setup_buffer(&ebo, GL_ELEMENT_ARRAY_BUFFER, cast(void*)indices.ptr, indices.sizeof, GL_STATIC_DRAW);*/
 
 	scope(exit) {
 		glDeleteVertexArrays(1, &vao);
 		glDeleteBuffers(1, &vbo);
-		glDeleteBuffers(1, &ebo);
+		//glDeleteBuffers(1, &ebo);
 	}
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * float.sizeof, cast(void*)0);
@@ -439,19 +439,19 @@ void main() {
 		m4 view = look_at(camera.pos, camera.pos + camera.front, camera.up);
 		glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"), 1, GL_FALSE, view.arr.ptr);
 
-		/*for (uint i = 0; i < cubes.length; i++) {
+		for (uint i = 0; i < cubes.length; i++) {
 			m4 model = rotate(2f * cast(float)glfwGetTime(), v3([0.5f, 1.0f, 0.0f]));
 			model = translate(cubes[i]) * model;
 			glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, model.arr.ptr);
 
 			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}*/
+		}
 
-		m4 model = translate(v3(0f, 0f, 0f));
-		glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, model.arr.ptr);
+		/*m4 model = translate(v3(0f, 0f, 0f));
+		glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, model.arr.ptr);*/
 
-		//glDrawArrays(GL_TRIANGLES, 0, verts.sizeof);
-		glDrawElements(GL_TRIANGLES, indices.sizeof, GL_UNSIGNED_INT, cast(const(void)*)0);
+		//glDrawArrays(GL_TRIANGLES, 0, vertices.sizeof);
+		//glDrawElements(GL_TRIANGLES, indices.sizeof, GL_UNSIGNED_INT, cast(const(void)*)0);
 
 		glfwSwapBuffers(win);
 
