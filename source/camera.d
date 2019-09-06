@@ -70,8 +70,6 @@ void cam_look(float xoff, float yoff) {
         pitch = - 89f;
     }
 
-    printf("%f %f\n", yaw, pitch);
-
     cam_update();
 }
 

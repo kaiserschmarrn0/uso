@@ -274,11 +274,12 @@ void main() {
 	glfwSetDropCallback(win, &uso_drop_cb);
 
 	uint shader_program;
-	if (!setup_program(shader_program, "source/triangle.v.glsl", "source/triangle.f.glsl")) {
+	//if (!setup_program(shader_program, "source/triangle.v.glsl", "source/triangle.f.glsl")) {
+	if (!setup_program(shader_program, "source/curve.v.glsl", "source/curve.f.glsl")) {
 		return;
 	}
 
-	float[36 * 5] vertices = [
+	/*float[36 * 5] vertices = [
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
 		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
@@ -332,7 +333,27 @@ void main() {
 		v3(-3f,  3f, -3f),
 		v3( 3f, -3f, -3f),
 		v3(-3f, -3f, -3f)
-	];
+	];*/
+
+	v2[3] points = [ v2(0f, 0f), v2(3f, 5f), v2(6f, 0f) ];
+
+    float[3 * 20 * 2] verts;
+	uint[3 * 20 * 2] indices;
+    if (!bez_vec(verts.ptr, indices.ptr, points.ptr, points.length, .05f)) {
+        return;
+    }
+
+	for (int i = 0; i < verts.length; i++) {
+		printf("%f %f\n", verts[i++], verts[i++]);
+	}
+
+	printf("verts: %d\n", verts.length / 3);
+
+	for (int i = 0; i < indices.length; i++) {
+		printf("%d\n", indices[i]);
+	}
+
+	printf("inds: %d", indices.length);
 
 	stbi_set_flip_vertically_on_load(true);
 
@@ -346,30 +367,36 @@ void main() {
 		return;
 	}
 
+	///huh?
 	uint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
 	uint vbo;
-	setup_buffer(&vbo, GL_ARRAY_BUFFER, cast(void*)vertices.ptr, vertices.sizeof, GL_STATIC_DRAW);
+	setup_buffer(&vbo, GL_ARRAY_BUFFER, cast(void*)verts.ptr, verts.sizeof, GL_STATIC_DRAW);
+	//setup_buffer(&vbo, GL_ARRAY_BUFFER, cast(void*)vertices.ptr, vertices.sizeof, GL_STATIC_DRAW);
+
+	uint ebo;
+	setup_buffer(&ebo, GL_ELEMENT_ARRAY_BUFFER, cast(void*)indices.ptr, indices.sizeof, GL_STATIC_DRAW);
 
 	scope(exit) {
 		glDeleteVertexArrays(1, &vao);
 		glDeleteBuffers(1, &vbo);
+		glDeleteBuffers(1, &ebo);
 	}
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * float.sizeof, cast(void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * float.sizeof, cast(void*)0);
 	glEnableVertexAttribArray(0);
 
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * float.sizeof, cast(void*)(3 * float.sizeof));
-	glEnableVertexAttribArray(1);
+	/*glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * float.sizeof, cast(void*)(3 * float.sizeof));
+	glEnableVertexAttribArray(1);*/
 
 	//unbind stuff
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
 	//wireframe;
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	//do i need to use this here?
 	glUseProgram(shader_program);
@@ -384,7 +411,10 @@ void main() {
 
 	glBindVertexArray(vao);
 
-	glEnable(GL_DEPTH_TEST);
+	/*glEnable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+
+	glFrontFace(GL_CW);*/
 
 	//should this be here?
 	glUseProgram(shader_program);
@@ -409,13 +439,19 @@ void main() {
 		m4 view = look_at(camera.pos, camera.pos + camera.front, camera.up);
 		glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"), 1, GL_FALSE, view.arr.ptr);
 
-		for (uint i = 0; i < cubes.length; i++) {
+		/*for (uint i = 0; i < cubes.length; i++) {
 			m4 model = rotate(2f * cast(float)glfwGetTime(), v3([0.5f, 1.0f, 0.0f]));
 			model = translate(cubes[i]) * model;
 			glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, model.arr.ptr);
 
 			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
+		}*/
+
+		m4 model = translate(v3(0f, 0f, 0f));
+		glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, model.arr.ptr);
+
+		//glDrawArrays(GL_TRIANGLES, 0, verts.sizeof);
+		glDrawElements(GL_TRIANGLES, indices.sizeof, GL_UNSIGNED_INT, cast(const(void)*)0);
 
 		glfwSwapBuffers(win);
 

@@ -69,7 +69,7 @@ union v2 {
         return this;
     }
 
-    v2 opAdd(v2 v) {
+    v2 opAdd(v2 v) const {
         return v2(this.vec + v.vec);
     }
 
@@ -81,11 +81,11 @@ union v2 {
         return v2(this.vec * f);
     }
 
-    v2 opBinary(string op)(float f) if (op == "/") {
+    v2 opBinary(string op)(float f) const if (op == "/") {
         return v2(this.vec / f);
     }
 
-    v2 opBinary(string op)(v2 v) if (op == "-") {
+    v2 opBinary(string op)(v2 v) const if (op == "-") {
         return v2(this.vec - v.vec);
     }
 }
@@ -277,6 +277,10 @@ m4 translate(v3 v) {
     return ret;
 }
 
+float dot(v2 l, v2 r) {
+    return l.x * r.x + l.y * r.y;
+}
+
 float dot(v3 l, v3 r) {
     return l.x * r.x + l.y * r.y + l.z * r.z;
 }
@@ -289,11 +293,23 @@ float len(v3 v) {
     return sqrt(lensq(v));
 }
 
+float lensq(v2 v) {
+    return dot(v, v);
+}
+
+float len(v2 v) {
+    return sqrt(lensq(v));
+}
+
 v3 cross(v3 l, v3 r) {
     return v3(l.y * r.z - l.z *r.y, l.z * r.x - l.x * r.z, l.x * r.y - l.y * r.x);
 }
 
 v3 norm(v3 v) {
+    return v / len(v);
+}
+
+v2 norm(v2 v) {
     return v / len(v);
 }
 
@@ -387,14 +403,85 @@ bool bez(ref v2 res, v2* points, uint len, float t) {
     return true;
 }
 
-void main() {
-    v2[3] points = [ v2(0f, 1f), v2(0f, 0f), v2(1f, 0f) ];
-
-    for (float i = 0; i < 1.1; i+= .1f) {
-        v2 res;
-        if (!bez(res, points.ptr, points.length, i)) {
-            return;
-        }
-        printf("%f %f\n", res.x, res.y);
+bool bez_vec(float* vertex_array, uint *indices, v2* points, uint len, float dt) {
+    v2 prev_res;
+    if (!bez(prev_res, points, len, 0f)) {
+        return false;
     }
+
+    uint i = 0;
+    uint indices_index = 0;
+    uint indices_seed = 0;
+    for (float step = dt; step < 1.1f; step += dt) {
+        v2 cur_res;
+        if (!bez(cur_res, points, len, step)) {
+            return false;
+        }
+
+        const v2 seg = cur_res - prev_res;
+        const v2 t = seg / 2f + prev_res;
+        const v2 off = norm(normal(seg));
+        v2 pn = t + off;
+        v2 nn = t - off;
+
+        vertex_array[i++] = pn.x;
+        vertex_array[i++] = pn.y;
+        vertex_array[i++] = 0f;
+
+        vertex_array[i++] = nn.x;
+        vertex_array[i++] = nn.y;
+        vertex_array[i++] = 0f;
+
+        indices[indices_index++] = indices_seed;
+        indices[indices_index++] = indices_seed + 1;
+        indices[indices_index++] = indices_seed + 2;
+
+        indices_seed++;
+
+        indices[indices_index++] = indices_seed;
+        indices[indices_index++] = indices_seed + 1;
+        indices[indices_index++] = indices_seed + 2;
+
+        indices_seed++;
+
+        //res[i++] = cur_res - prev_res;
+
+        prev_res = cur_res;
+    }
+
+    return true;
 }
+
+v2 normal(v2 v) {
+    return v2(-v.y, v.x);
+}
+
+void bez_circle(v2 l, v2 r) {
+    //float arc = acos(dot(norm(l), norm(r)));
+}
+
+void bez_verts(v2 c) {
+    v2 n = normal(c);
+
+    n += c / 2;
+
+
+
+}
+
+float slider_dur(float pixel_length, float slider_multiplier, float beat_duration) {
+    return pixel_length / (100f * slider_multiplier) * beat_duration;
+}
+
+/*void main() {
+    v2[3] points = [ v2(0f, 3f), v2(0f, 0f), v2(3f, 0f) ];
+
+    float[2 * 10 * 3] verts;
+    if (!bez_vec(verts.ptr, points.ptr, points.length, .1f)) {
+        return;
+    }
+
+    for (uint i = 0; i < verts.length; i++) {
+        printf("%f\n", verts[i]);
+    }
+}*/
