@@ -17,7 +17,7 @@ enum cam_dir {
     down
 };
 
-v3 pos = v3(0f, 0f, 0f);
+v3 pos = v3(0f, 0f, -1f);
 v3 front = v3(0f, 0f, 1f,);
 v3 up = v3(0f, 1f, 0f);
 v3 right = v3(0f, 0f, 0f);

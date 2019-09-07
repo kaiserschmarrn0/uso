@@ -275,7 +275,7 @@ void main() {
 
 	uint shader_program;
 	//if (!setup_program(shader_program, "source/triangle.v.glsl", "source/triangle.f.glsl")) {
-	if (!setup_program(shader_program, "source/curve.v.glsl", "source/curve.f.glsl")) {
+	if (!setup_program(shader_program, "source/triangle.v.glsl", "source/triangle.f.glsl")) {
 		return;
 	}
 
@@ -385,18 +385,18 @@ void main() {
 		//glDeleteBuffers(1, &ebo);
 	}
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * float.sizeof, cast(void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * float.sizeof, cast(void*)0);
 	glEnableVertexAttribArray(0);
 
-	/*glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * float.sizeof, cast(void*)(3 * float.sizeof));
-	glEnableVertexAttribArray(1);*/
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * float.sizeof, cast(void*)(3 * float.sizeof));
+	glEnableVertexAttribArray(1);
 
 	//unbind stuff
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
 	//wireframe;
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	//do i need to use this here?
 	glUseProgram(shader_program);
@@ -411,8 +411,8 @@ void main() {
 
 	glBindVertexArray(vao);
 
-	/*glEnable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+	/*glDisable(GL_CULL_FACE);
 
 	glFrontFace(GL_CW);*/
 
