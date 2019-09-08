@@ -260,7 +260,7 @@ extern(Windows) void glDebugOutput(uint source, uint type, uint id, uint severit
 		case GL_DEBUG_SEVERITY_LOW: printf("low"); break;
 		case GL_DEBUG_SEVERITY_NOTIFICATION: printf("notification"); break;
 	}
-	printf("\n");
+	printf(".\n\tmessage: %s.\n", message);
 }
 
 void main() {
@@ -280,8 +280,8 @@ void main() {
 	}
 
 	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	win = glfwCreateWindow(640, 480, "uso!", null, null);
