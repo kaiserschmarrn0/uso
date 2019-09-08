@@ -231,6 +231,38 @@ bool setup_texture(ref uint t, const char* fname, GLenum mode) {
 	return true;
 }
 
+extern(C) void glDebugOutput(uint source, uint type, uint id, uint severity, int length, const(char)* message, void *user_param) {
+	printf("uso: opengl error:\n\tsource: ");
+	final switch(source) {
+		case GL_DEBUG_SOURCE_API: printf("api"); break;
+		case GL_DEBUG_SOURCE_WINDOW_SYSTEM: printf("window system"); break;
+		case GL_DEBUG_SOURCE_SHADER_COMPILER: printf("shader compiler"); break;
+		case GL_DEBUG_SOURCE_THIRD_PARTY: printf("third party"); break;
+		case GL_DEBUG_SOURCE_APPLICATION: printf("application"); break;
+		case GL_DEBUG_SOURCE_OTHER: printf("other"); break;
+	}
+	printf(".\n\ttype: ");
+	final switch(type) {
+		case GL_DEBUG_TYPE_ERROR: printf("error"); break;
+		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: printf("deprecated behaviour"); break;
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: printf("undefined behaviour"); break;
+		case GL_DEBUG_TYPE_PORTABILITY: printf("portability"); break;
+		case GL_DEBUG_TYPE_PERFORMANCE: printf("performance"); break;
+		case GL_DEBUG_TYPE_MARKER: printf("marker"); break;
+		case GL_DEBUG_TYPE_PUSH_GROUP: printf("push group"); break;
+		case GL_DEBUG_TYPE_POP_GROUP: printf("pop group"); break;
+		case GL_DEBUG_TYPE_OTHER: printf("other"); break;
+	}
+	printf(".\n\tseverity: ");
+	final switch(severity) {
+		case GL_DEBUG_SEVERITY_HIGH: printf("high"); break;
+		case GL_DEBUG_SEVERITY_MEDIUM: printf("medium"); break;
+		case GL_DEBUG_SEVERITY_LOW: printf("low"); break;
+		case GL_DEBUG_SEVERITY_NOTIFICATION: printf("notification"); break;
+	}
+	printf("\n");
+}
+
 void main() {
 	printf("uso: hello uso.\nuso: using glfw %s.\n", glfwGetVersionString);
 
@@ -239,14 +271,15 @@ void main() {
 		return;
 	}
 
+	glfwSetErrorCallback(&uso_glfw_error_cb);
+
 	scope(exit) {
 		glfwDestroyWindow(win);
 		glfwTerminate();
 		printf("uso: exiting.\n");
 	}
 
-	glfwSetErrorCallback(&uso_glfw_error_cb);
-
+	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -261,6 +294,15 @@ void main() {
 	} else {
 		printf("uso: unable to load OpenGL 4.5\n");
 		return;
+	}
+
+	int flags;
+	glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+	if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
+		glEnable(GL_DEBUG_OUTPUT);
+		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+		glDebugMessageCallback(&glDebugOutput, null);
+		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, null, GL_TRUE);
 	}
 
 	glViewport(0, 0, 640, 480);
@@ -454,6 +496,11 @@ void main() {
 		//glDrawElements(GL_TRIANGLES, indices.sizeof, GL_UNSIGNED_INT, cast(const(void)*)0);
 
 		glfwSwapBuffers(win);
+
+		uint error = glGetError();
+		if (error) {
+			printf("error: %d\n", error);
+		}
 
 		Duration end = MonoTime.currTime - start;
 		if (end < spf) {
