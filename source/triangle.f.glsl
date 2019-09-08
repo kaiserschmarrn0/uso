@@ -1,7 +1,6 @@
-#version 450 core
+#version 330 core
 out vec4 final_col;
 
-//in vec3 frag_col;
 in vec2 frag_tex;
 
 uniform sampler2D texture1;
