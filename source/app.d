@@ -231,7 +231,7 @@ bool setup_texture(ref uint t, const char* fname, GLenum mode) {
 	return true;
 }
 
-extern(C) void glDebugOutput(uint source, uint type, uint id, uint severity, int length, const(char)* message, void *user_param) {
+extern(Windows) void glDebugOutput(uint source, uint type, uint id, uint severity, int length, const(char)* message, void *user_param) {
 	printf("uso: opengl error:\n\tsource: ");
 	final switch(source) {
 		case GL_DEBUG_SOURCE_API: printf("api"); break;
