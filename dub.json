@@ -16,6 +16,9 @@
 	"libs": [
 		"glfw3"
 	],
+	"dflags": [
+		
+	],
 	"dflags-windows-x86_64": [
 		"-static"
 	],

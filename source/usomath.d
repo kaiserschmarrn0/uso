@@ -39,10 +39,12 @@ union v2 {
 	}
 
     this(float4 v) {
+        this.vec = 0f;
         this.vec = v;
     }
 
     this(float x, float y) {
+        this.vec = 0f;
         this.x = x;
         this.y = y;
     }
@@ -180,7 +182,9 @@ union v4 {
     }
 
     void opAssign(v3 v) {
-        this.vec[0..3] = v.vec[0..3];
+        this.vec[0] = v.vec[0];
+        this.vec[1] = v.vec[1];
+        this.vec[2] = v.vec[2];
     }
 
     void opAssign(v4 v) {
@@ -188,7 +192,9 @@ union v4 {
     }
 
     ref v4 opOpAssign(string op)(v3 v) if (op == "+") {
-        this.vec[0..3] += v.vec[0..3];
+        this.vec[0] += v.vec[0];
+        this.vec[1] += v.vec[1];
+        this.vec[2] += v.vec[2];
         return this;
     }
 
@@ -403,16 +409,214 @@ bool bez(ref v2 res, v2* points, uint len, float t) {
     return true;
 }
 
-bool bez_vec(float* vertex_array, uint *indices, v2* points, uint len, float dt) {
+bool bez_vec(float* vertex_array, uint* indices, v2* points, uint points_len, uint segs) @nogc nothrow {
+    float inc = 1.0f / cast(float) segs;
+
+    v2 p1 = 0f;
+    if (!bez(p1, points, points_len, 0f)) {
+        return false;
+    }
+
+    v2 p2 = 0f;
+    if (!bez(p2, points, points_len, inc)) {
+        return false;
+    }
+
+    size_t vertices_index = 0;
+    size_t indices_index = 0;
+
+    v2 seg = p2 - p1;
+    v2 normal = norm(ortho(seg));
+
+    v2 i = p1 + normal;
+    vertex_array[vertices_index++] = i.x;
+    vertex_array[vertices_index++] = i.y;
+    vertex_array[vertices_index++] = 0f;
+    vertex_array[vertices_index++] = 1f;
+
+    indices[indices_index++] = 0;
+
+    v2 o = p1 - normal;
+    vertex_array[vertices_index++] = o.x;
+    vertex_array[vertices_index++] = o.y;
+    vertex_array[vertices_index++] = 0f;
+    vertex_array[vertices_index++] = 0f;
+
+    indices[indices_index++] = 1;
+
+    uint indices_seed = 1;
+    for (uint it = 1; it <= segs; it++) {
+        if (!bez(p2, points, points_len, it * inc)) {
+            return false;
+        }
+
+        seg = p2 - p1;
+        const v2 mid = p1 + seg / 2;
+        normal = norm(ortho(seg));
+
+        i = mid + normal;
+        vertex_array[vertices_index++] = i.x;
+        vertex_array[vertices_index++] = i.y;
+        vertex_array[vertices_index++] = 0f;
+        vertex_array[vertices_index++] = 1f;
+
+        indices[indices_index++] = indices_seed + 1;
+        indices[indices_index++] = indices_seed;
+        indices[indices_index++] = indices_seed + 1;
+        indices_seed++;
+
+        o = mid - normal;
+        vertex_array[vertices_index++] = o.x;
+        vertex_array[vertices_index++] = o.y;
+        vertex_array[vertices_index++] = 0f;
+        vertex_array[vertices_index++] = 0f;
+
+        indices[indices_index++] = indices_seed + 1;
+        indices[indices_index++] = indices_seed;
+        indices[indices_index++] = indices_seed + 1;
+        indices_seed++;
+
+        p1 = p2;
+    }
+    
+    i = p2 + normal;
+    vertex_array[vertices_index++] = i.x;
+    vertex_array[vertices_index++] = i.y;
+    vertex_array[vertices_index++] = 0f;
+    vertex_array[vertices_index++] = 1f;
+
+    indices[indices_index++] = indices_seed + 1;
+    indices[indices_index++] = indices_seed;
+    indices[indices_index++] = indices_seed + 1;
+
+    o = p2 - normal;
+    vertex_array[vertices_index++] = o.x;
+    vertex_array[vertices_index++] = o.y;
+    vertex_array[vertices_index++] = 0f;
+    vertex_array[vertices_index++] = 0f;
+
+    indices[indices_index++] = indices_seed + 2;
+
+    return true;
+}
+
+/*bool bez_vec(float* vertex_array, uint* indices, v2* points, uint points_len, uint segs) @nogc nothrow {
+    float inc = 1.0f / cast(float) segs;
+
+    v2 p1 = 0f;
+    if (!bez(p1, points, points_len, 0f)) {
+        return false;
+    }
+
+    v2 p2 = 0f;
+    if (!bez(p2, points, points_len, inc)) {
+        return false;
+    }
+
+    float zc(v2 l, v2 r) {
+        return l.x * r.y - l.y * r.x;
+    }
+
+    v2 seg1 = p2 - p1;
+
+    size_t vertices_index = 0;
+    size_t indices_index = 0;
+
+    v2 btor = norm(ortho(seg1));
+
+    v2 i = p1 + btor;
+    vertex_array[vertices_index++] = i.x;
+    vertex_array[vertices_index++] = i.y;
+    vertex_array[vertices_index++] = 0f;
+
+    printf("i: (%f, %f)\n", i.x, i.y);
+    printf("i: (%f, %f)\n", vertex_array[0], vertex_array[1]);
+
+    indices[indices_index++] = 0;
+
+    v2 o = p1 - btor;
+    vertex_array[vertices_index++] = o.x;
+    vertex_array[vertices_index++] = o.y;
+    vertex_array[vertices_index++] = 0f;
+
+    printf("o: (%f, %f)\n", o.x, o.y);
+    printf("o: (%f, %f)\n", vertex_array[3], vertex_array[4]);
+
+    indices[indices_index++] = 1;
+    
+    v2 p3 = 0f;
+    v2 seg2;
+    uint indices_seed = 1;
+    for (uint it = 2; it < segs + 1; it++) {
+        if (!bez(p3, points, points_len, it * inc)) {
+            return false;
+        }
+
+        //printf("running: (%f, %f)(%f, %f)(%f, %f) inc: %f, it: %d\n", p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, cast(float) it * inc, it);
+
+        seg2 = p3 - p2;
+
+        btor = norm(norm(seg2) - norm(seg1));
+
+        i = p2 + btor;
+        vertex_array[vertices_index++] = i.x;
+        vertex_array[vertices_index++] = i.y;
+        vertex_array[vertices_index++] = 0f;
+
+        indices[indices_index++] = indices_seed + 1;
+        indices[indices_index++] = indices_seed;
+        indices[indices_index++] = indices_seed + 1;
+        indices_seed++;
+
+        o = p2 - btor;
+        vertex_array[vertices_index++] = o.x;
+        vertex_array[vertices_index++] = o.y;
+        vertex_array[vertices_index++] = 0f;
+
+        indices[indices_index++] = indices_seed + 1;
+        indices[indices_index++] = indices_seed;
+        indices[indices_index++] = indices_seed + 1;
+        indices_seed++;
+
+        seg1 = seg2;
+        p1 = p2;
+        p2 = p3;   
+    }
+    
+    btor = norm(ortho(seg2));
+
+    i = p3 + btor;
+    vertex_array[vertices_index++] = i.x;
+    vertex_array[vertices_index++] = i.y;
+    vertex_array[vertices_index++] = 0f;
+
+    indices[indices_index++] = indices_seed + 1;
+    indices[indices_index++] = indices_seed;
+    indices[indices_index++] = indices_seed + 1;
+    indices_seed++;
+
+    o = p3 - btor;
+    vertex_array[vertices_index++] = o.x;
+    vertex_array[vertices_index++] = o.y;
+    vertex_array[vertices_index++] = 0f;
+
+    indices[indices_index++] = indices_seed + 1;
+
+    return true;
+}*/
+
+/*bool bez_vec(float* vertex_array, uint *indices, v2* points, uint len, float dt) {
     v2 prev_res;
     if (!bez(prev_res, points, len, 0f)) {
         return false;
     }
 
-    uint i = 0;
     uint indices_index = 0;
     uint indices_seed = 0;
-    for (float step = dt; step < 1.1f; step += dt) {
+    uint vertices_index = 0;
+    float step = dt;
+    const uint limit = cast(uint)(1.0f / dt);
+    for (uint i = 0; i < limit; i++) {
         v2 cur_res;
         if (!bez(cur_res, points, len, step)) {
             return false;
@@ -420,17 +624,23 @@ bool bez_vec(float* vertex_array, uint *indices, v2* points, uint len, float dt)
 
         const v2 seg = cur_res - prev_res;
         const v2 t = seg / 2f + prev_res;
-        const v2 off = norm(normal(seg));
+        const v2 off = norm(ortho(seg));
         v2 pn = t + off;
         v2 nn = t - off;
 
-        vertex_array[i++] = pn.x;
-        vertex_array[i++] = pn.y;
-        vertex_array[i++] = 0f;
+        vertex_array[vertices_index++] = pn.x;
+        vertex_array[vertices_index++] = pn.y;
+        vertex_array[vertices_index++] = 0f;
 
-        vertex_array[i++] = nn.x;
-        vertex_array[i++] = nn.y;
-        vertex_array[i++] = 0f;
+        vertex_array[vertices_index++] = nn.x;
+        vertex_array[vertices_index++] = nn.y;
+        vertex_array[vertices_index++] = 0f;
+
+        indices[indices_index++] = indices_seed;
+        indices[indices_index++] = indices_seed + 1;
+        indices[indices_index++] = indices_seed + 2;
+
+        indices_seed++;
 
         indices[indices_index++] = indices_seed;
         indices[indices_index++] = indices_seed + 1;
@@ -438,11 +648,7 @@ bool bez_vec(float* vertex_array, uint *indices, v2* points, uint len, float dt)
 
         indices_seed++;
 
-        indices[indices_index++] = indices_seed;
-        indices[indices_index++] = indices_seed + 1;
-        indices[indices_index++] = indices_seed + 2;
-
-        indices_seed++;
+        step += dt;
 
         //res[i++] = cur_res - prev_res;
 
@@ -450,9 +656,9 @@ bool bez_vec(float* vertex_array, uint *indices, v2* points, uint len, float dt)
     }
 
     return true;
-}
+}*/
 
-v2 normal(v2 v) {
+v2 ortho(v2 v) {
     return v2(-v.y, v.x);
 }
 
@@ -461,12 +667,9 @@ void bez_circle(v2 l, v2 r) {
 }
 
 void bez_verts(v2 c) {
-    v2 n = normal(c);
+    v2 n = ortho(c);
 
     n += c / 2;
-
-
-
 }
 
 float slider_dur(float pixel_length, float slider_multiplier, float beat_duration) {

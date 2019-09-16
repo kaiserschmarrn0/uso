@@ -1,10 +1,8 @@
 import core.stdc.stdio;
 import core.stdc.stdlib;
-import core.thread;
-import core.time;
-import core.simd;
+//import core.time;
 
-import std.math;
+//import std.math;
 
 import bindbc.glfw;
 import bindbc.opengl;
@@ -18,9 +16,6 @@ nothrow:
 @nogc:
 
 GLFWwindow* win;
-
-uint win_w = 640;
-uint win_h = 480;
 
 export bool NvOptimusEnablement = true;
 export bool AmdPowerXPressRequestHighPerformance = true;
@@ -68,8 +63,6 @@ extern (C) void uso_scroll_cb(GLFWwindow* win, double xoff, double yoff) {
 }
 
 extern (C) void uso_fb_size_cb(GLFWwindow* win, int width, int height) {
-	win_w = width;
-	win_h = height;
 	glViewport(0, 0, width, height);
 }
 
@@ -211,7 +204,7 @@ void setup_buffer(GLuint* bo, GLenum type, void* data, size_t len, GLenum usage)
 	glBufferData(type, len, data, usage);
 }
 
-bool setup_texture(ref uint t, const char* fname, GLenum mode) {
+bool setup_texture_2d(ref uint t, const char* fname, GLenum mode) {
 	int w;
 	int h;
 	int channels;
@@ -231,8 +224,28 @@ bool setup_texture(ref uint t, const char* fname, GLenum mode) {
 	return true;
 }
 
+bool setup_texture_1d(ref uint t, const char* fname, GLenum mode) {
+	int w;
+	int h;
+	int channels;
+	ubyte *data = stbi_load(fname, &w, &h, &channels, 0);
+	if (!data) {
+		printf("uso: failed to load image %s\n.", fname);
+		return false;
+	}
+
+	glGenTextures(1, &t);
+	glBindTexture(GL_TEXTURE_1D, t);
+
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, w, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	stbi_image_free(data);
+	glGenerateMipmap(GL_TEXTURE_1D);
+
+	return true;
+}
+
 extern(Windows) void glDebugOutput(uint source, uint type, uint id, uint severity, int length, const(char)* message, void *user_param) {
-	printf("uso: opengl error:\n\tsource: ");
+	printf("uso: opengl debug:\n\tsource: ");
 	final switch(source) {
 		case GL_DEBUG_SOURCE_API: printf("api"); break;
 		case GL_DEBUG_SOURCE_WINDOW_SYSTEM: printf("window system"); break;
@@ -263,7 +276,7 @@ extern(Windows) void glDebugOutput(uint source, uint type, uint id, uint severit
 	printf(".\n\tmessage: %s.\n", message);
 }
 
-void main() {
+void main() @nogc nothrow {
 	printf("uso: hello uso.\nuso: using glfw %s.\n", glfwGetVersionString);
 
 	if (!glfwInit()) {
@@ -283,13 +296,14 @@ void main() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_SAMPLES, 4);
 
 	win = glfwCreateWindow(640, 480, "uso!", null, null);
 	glfwMakeContextCurrent(win);
 	glfwSwapInterval(0);
 
 	const GLSupport support = loadOpenGL();
-	if (support == GLSupport.gl45) {
+	if (support == GLSupport.gl33) {
 		printf("uso: loaded OpenGL 4.5\n");
 	} else {
 		printf("uso: unable to load OpenGL 4.5\n");
@@ -317,11 +331,11 @@ void main() {
 
 	uint shader_program;
 	//if (!setup_program(shader_program, "source/triangle.v.glsl", "source/triangle.f.glsl")) {
-	if (!setup_program(shader_program, "source/triangle.v.glsl", "source/triangle.f.glsl")) {
+	if (!setup_program(shader_program, "source/slider.v.glsl", "source/slider.f.glsl")) {
 		return;
 	}
 
-	float[36 * 5] vertices = [
+	/*float[36 * 5] vertices = [
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
 		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
@@ -375,37 +389,46 @@ void main() {
 		v3(-3f,  3f, -3f),
 		v3( 3f, -3f, -3f),
 		v3(-3f, -3f, -3f)
-	];
+	];*/
 
-	/*v2[3] points = [ v2(0f, 0f), v2(3f, 5f), v2(6f, 0f) ];
+	v2[7] points = [ v2(22.4f, 17.6f), v2(28.4f, 10.4f), v2(31.2f, 12.8f), v2(32.4f, 8.8f), v2(30.4f, 4.8f), v2(26.4f, 3.2f), v2(22.8f, 5.6f) ];
+	//v2[5] points = [ v2(-2f, -2f), v2(4f, 0f), v2(0f, 3f), v2(-4f, 0f), v2(2f, -2f) ];
+	//v2[3] points = [ v2(-3f, 3f), v2(0f, 0f), v2(3f, 3f) ];
 
-    float[3 * 20 * 2] verts;
-	uint[3 * 20 * 2] indices;
-    if (!bez_vec(verts.ptr, indices.ptr, points.ptr, points.length, .05f)) {
+	enum uint segs = 40;
+
+    float[segs * (3 + 1) * 2 + 4 * (3 + 1)] vertices = 0f;
+	uint[segs * 3 * 2 + 6] indices;
+    if (!bez_vec(vertices.ptr, indices.ptr, points.ptr, points.length, segs)) {
         return;
     }
 
-	for (int i = 0; i < verts.length; i++) {
-		printf("%f %f\n", verts[i++], verts[i++]);
+	for (int i = 0; i < vertices.length;) {
+		printf("(%f, %f), %f, %f\n", vertices[i++], vertices[i++], vertices[i++], vertices[i++]);
 	}
 
-	printf("verts: %d\n", verts.length / 3);
+	printf("verts: %d, %d\n", vertices.length, vertices.length / 4);
 
 	for (int i = 0; i < indices.length; i++) {
 		printf("%d\n", indices[i]);
 	}
 
-	printf("inds: %d", indices.length);*/
+	printf("inds: %d\n", indices.length);
 
 	stbi_set_flip_vertically_on_load(true);
 
 	uint texture1;
-	if (!setup_texture(texture1, "egg.jpg", GL_RGB)) {
+	if (!setup_texture_2d(texture1, "egg.jpg", GL_RGB)) {
 		return;
 	}
 
 	uint texture2;
-	if (!setup_texture(texture2, "miku.png", GL_RGBA)) {
+	if (!setup_texture_2d(texture2, "miku.png", GL_RGBA)) {
+		return;
+	}
+
+	uint slidertex;
+	if (!setup_texture_1d(slidertex, "slidertex.png", GL_RGBA)) {
 		return;
 	}
 
@@ -418,8 +441,8 @@ void main() {
 	setup_buffer(&vbo, GL_ARRAY_BUFFER, cast(void*)vertices.ptr, vertices.sizeof, GL_STATIC_DRAW);
 	//setup_buffer(&vbo, GL_ARRAY_BUFFER, cast(void*)vertices.ptr, vertices.sizeof, GL_STATIC_DRAW);
 
-	/*uint ebo;
-	setup_buffer(&ebo, GL_ELEMENT_ARRAY_BUFFER, cast(void*)indices.ptr, indices.sizeof, GL_STATIC_DRAW);*/
+	uint ebo;
+	setup_buffer(&ebo, GL_ELEMENT_ARRAY_BUFFER, cast(void*)indices.ptr, indices.sizeof, GL_STATIC_DRAW);
 
 	scope(exit) {
 		glDeleteVertexArrays(1, &vao);
@@ -427,10 +450,10 @@ void main() {
 		//glDeleteBuffers(1, &ebo);
 	}
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * float.sizeof, cast(void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 4 * float.sizeof, cast(void*)0);
 	glEnableVertexAttribArray(0);
 
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * float.sizeof, cast(void*)(3 * float.sizeof));
+	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 4 * float.sizeof, cast(void*)(3 * float.sizeof));
 	glEnableVertexAttribArray(1);
 
 	//unbind stuff
@@ -442,18 +465,22 @@ void main() {
 
 	//do i need to use this here?
 	glUseProgram(shader_program);
-	glUniform1i(glGetUniformLocation(shader_program, "texture1"), 0);
-	glUniform1i(glGetUniformLocation(shader_program, "texture2"), 1);
+	/*glUniform1i(glGetUniformLocation(shader_program, "texture1"), 0);
+	glUniform1i(glGetUniformLocation(shader_program, "texture2"), 1);*/
+	glUniform1i(glGetUniformLocation(shader_program, "slidertex"), 0);
 
 	//bind textures
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture1);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, texture2);
+	glBindTexture(GL_TEXTURE_1D, slidertex);
+	/*glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, texture2);*/
 
 	glBindVertexArray(vao);
 
-	glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glEnable(GL_MULTISAMPLE);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	/*glDisable(GL_CULL_FACE);
 
 	glFrontFace(GL_CW);*/
@@ -462,38 +489,45 @@ void main() {
 	glUseProgram(shader_program);
 
 	enum double fps = 120;
-	enum Duration spf = usecs(cast(long)(1_000_000 * 1f / fps));
+	//enum Duration spf = usecs(cast(long)(1_000_000 * 1f / fps));
+	enum double spf = 1.0f / fps;
 	
-	MonoTime lf = MonoTime.currTime;
+	//MonoTime lf = MonoTime.currTime;
+	double lf = glfwGetTime();
 	while (!glfwWindowShouldClose(win)) {
-		const MonoTime start = MonoTime.currTime;
+		/*const MonoTime start = MonoTime.currTime;
 		const Duration dt = start - lf;
+		lf = start;*/
+
+		const double start = glfwGetTime();
+		const double dt = start - lf;
 		lf = start;
 
-		uso_keyboard(dt.total!"usecs" / 1_000_000f);
+		//uso_keyboard(dt.total!"usecs" / 1_000_000f);
+		uso_keyboard(dt);
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		m4 proj = perspective(radians(camera.zoom), win_w / win_h, 0.1f, 100f);
+		m4 proj = perspective(radians(camera.zoom), 640 / 480, 0.1f, 100f);
 		glUniformMatrix4fv(glGetUniformLocation(shader_program, "proj"), 1, GL_FALSE, proj.arr.ptr);
 
 		m4 view = look_at(camera.pos, camera.pos + camera.front, camera.up);
 		glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"), 1, GL_FALSE, view.arr.ptr);
 
-		for (uint i = 0; i < cubes.length; i++) {
+		/*for (uint i = 0; i < cubes.length; i++) {
 			m4 model = rotate(2f * cast(float)glfwGetTime(), v3([0.5f, 1.0f, 0.0f]));
 			model = translate(cubes[i]) * model;
 			glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, model.arr.ptr);
 
 			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
+		}*/
 
-		/*m4 model = translate(v3(0f, 0f, 0f));
-		glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, model.arr.ptr);*/
+		m4 model = translate(v3(0f, 0f, 0f));
+		glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, model.arr.ptr);
 
 		//glDrawArrays(GL_TRIANGLES, 0, vertices.sizeof);
-		//glDrawElements(GL_TRIANGLES, indices.sizeof, GL_UNSIGNED_INT, cast(const(void)*)0);
+		glDrawElements(GL_TRIANGLES, indices.sizeof, GL_UNSIGNED_INT, cast(const(void)*)0);
 
 		glfwSwapBuffers(win);
 
@@ -502,14 +536,19 @@ void main() {
 			printf("error: %d\n", error);
 		}
 
-		Duration end = MonoTime.currTime - start;
+		//Duration end = MonoTime.currTime - start;
+		double end = glfwGetTime() - start;
 		if (end < spf) {
 			do {
-				glfwWaitEventsTimeout(cast(double)(spf - end).total!"usecs" / 1_000_000f);
-				end = MonoTime.currTime - start;
+				//glfwWaitEventsTimeout(cast(double)(spf - end).total!"usecs" / 1_000_000f);
+				glfwWaitEventsTimeout(spf - end);
+				//end = MonoTime.currTime - start;
+				end = glfwGetTime() - start;
 			} while(end < spf);
 		} else {
 			glfwPollEvents();
 		}
 	}
+
+	return;
 }
